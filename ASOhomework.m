@@ -4,14 +4,15 @@ clear all;clc
 map_distance=[inf 3 1 5 8;3 inf 6 7 9;1 6 inf 4 2;5 7 4 inf 3;8 9 2 3 inf];
 Ng=100;%迭代次数
 antnum=30;%蚂蚁数目
-Alpha=1;%信息素重要程度[0,5]
+Alpha=2;%信息素重要程度[0,5]
 Beta=2;%启发因子重要程度[0,5]
-Rho=0.75;%信息素蒸发[0.1,0.99]
+Rho=1;%信息素蒸发[0.1,0.99]
 Q=1;%信息素增加强度
 Eta=1./map_distance;%启发因子
 %%
 %初始化蚁群
 ctitynum=size(map_distance,1);%城市数量
+Delta_Tau = zeros(ctitynum, ctitynum);
 BestRoute=nan(1,ctitynum);
 BestDistence=inf;
 RouteOfAnt=nan(antnum,ctitynum);%记录蚂蚁的路线
@@ -21,12 +22,12 @@ end
 PheromoneMap=zeros(ctitynum,ctitynum);%初始化信息素矩阵
 %%
 for i=1:Ng
-    [RouteOfAnt,PheromoneMap,BestRoute,BestDistence]=SelectProbability(Alpha,Beta,RouteOfAnt,PheromoneMap,Eta,map_distance,BestDistence,BestRoute,Rho,Q);
+    [RouteOfAnt,PheromoneMap,BestRoute,BestDistence,Delta_Tau]=SelectProbability(Alpha,Beta,RouteOfAnt,PheromoneMap,Eta,map_distance,BestDistence,BestRoute,Rho,Q,Delta_Tau);
 end
 BestRoute
 BestDistence
 %%
-function [RouteOfAnt,PheromoneMap,BestRoute,BestDistence]=SelectProbability(Alpha,Beta,RouteOfAnt,PheromoneMap,Eta,map_distance,BestDistence,BestRoute,Rho,Q)
+function [RouteOfAnt,PheromoneMap,BestRoute,BestDistence,Delta_Tau]=SelectProbability(Alpha,Beta,RouteOfAnt,PheromoneMap,Eta,map_distance,BestDistence,BestRoute,Rho,Q,Delta_Tau)
     ctitynum=size(PheromoneMap,1);
     antnum=size(RouteOfAnt,1);
     Probability=nan(1,ctitynum);
@@ -54,7 +55,7 @@ function [RouteOfAnt,PheromoneMap,BestRoute,BestDistence]=SelectProbability(Alph
                 end
             else
                 [BestRoute,BestDistence]=DistanceComputer(RouteOfAnt,map_distance,BestDistence,BestRoute);%
-                [PheromoneMap]=PheromoneMapUpdate(PheromoneMap,Rho,antnum,RouteOfAnt,Q,map_distance);
+                [PheromoneMap,Delta_Tau]=PheromoneMapUpdate(PheromoneMap,Rho,antnum,RouteOfAnt,Q,map_distance,Delta_Tau);
             end 
         end
     end
@@ -77,9 +78,8 @@ function [BestRoute,BestDistence]=DistanceComputer(RouteOfAnt,map_distance,BestD
         BestRoute=RouteOfAnt(tempminID,:);
     end
 end
-function [PheromoneMap]=PheromoneMapUpdate(PheromoneMap,Rho,antnum,RouteOfAnt,Q,map_distance)
+function [PheromoneMap,Delta_Tau]=PheromoneMapUpdate(PheromoneMap,Rho,antnum,RouteOfAnt,Q,map_distance,Delta_Tau)
     ctitynum=size(PheromoneMap,1);
-    Delta_Tau = zeros(ctitynum, ctitynum);
     for i = 1: antnum
         for j = 1: (ctitynum - 1)
             Delta_Tau(RouteOfAnt(i, j), RouteOfAnt(i, j + 1)) = Delta_Tau(RouteOfAnt(i, j), RouteOfAnt(i, j + 1)) + Q / map_distance(RouteOfAnt(i, j), RouteOfAnt(i, j + 1));
